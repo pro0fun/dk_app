@@ -1,28 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; // ✅ Make sure this exists!
-import 'login_page.dart'; // ✅ Direct import from lib
+import 'firebase_options.dart'; // Ensure this file exists and is generated correctly
+import 'login_page.dart'; // Import your login page
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();  // Ensures that the Flutter engine is initialized.
+  
+  // Firebase initialization, passing the correct options
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // ✅ Needed for Firebase to work on all platforms
+    options: DefaultFirebaseOptions.currentPlatform,  // Firebase options for all platforms (iOS, Android, etc.)
   );
 
-  runApp(const MyApp()); // ✅ Add const
+  runApp(const MyApp());  // Starts the app with the MyApp widget
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key); // ✅ Add Key to constructor
+  const MyApp({super.key});  // Constructor with a key to support widget keys
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'DK App',
+      title: 'DK App',  // Title of the app that shows up on the home screen
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.blue,  // Setting the primary color theme for your app
       ),
-      home: const LoginPage(), // ✅ Use const if no dynamic content
+      home: const LoginPage(),  // Starting screen of the app, LoginPage here
     );
   }
 }

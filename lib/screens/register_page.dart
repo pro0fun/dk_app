@@ -5,7 +5,7 @@ class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  _RegisterPageState createState() => _RegisterPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
@@ -29,11 +29,12 @@ class _RegisterPageState extends State<RegisterPage> {
         if (_passwordController.text == _confirmPasswordController.text) {
           // Create user with email and password
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
-            email: _emailController.text,
+            email: _emailController.text.trim(),
             password: _passwordController.text,
           );
 
-          // Navigate to login page after successful registration
+          // ✅ SAFELY use context after async
+          if (!mounted) return;
           Navigator.pushReplacementNamed(context, '/login');
         } else {
           setState(() {
