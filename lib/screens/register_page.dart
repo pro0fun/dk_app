@@ -1,14 +1,16 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../login_page.dart';  // Correct path to login_page.dart since it's in the lib folder
+import 'home_screen.dart';   // Correct path to home_screen.dart
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  RegisterPageState createState() => RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -18,6 +20,19 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
   String _errorMessage = '';
 
+  final FocusNode _passwordFocusNode = FocusNode();
+  final FocusNode _confirmPasswordFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
+    super.dispose();
+  }
+
   Future<void> _register() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
@@ -26,25 +41,34 @@ class _RegisterPageState extends State<RegisterPage> {
       });
 
       try {
-        if (_passwordController.text == _confirmPasswordController.text) {
-          // Create user with email and password
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
 
-          // ✅ SAFELY use context after async
-          if (!mounted) return;
-          Navigator.pushReplacementNamed(context, '/login');
-        } else {
+        if (!mounted) return;
+
+        final user = userCredential.user; // Firebase User object
+        if (user == null) {
           setState(() {
-            _errorMessage = 'Passwords do not match';
-            _isLoading = false;
+            _errorMessage = 'Failed to create account.';
           });
+          return;
         }
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomeScreen(user: user), // Passing Firebase User
+          ),
+        );
       } on FirebaseAuthException catch (e) {
         setState(() {
           _errorMessage = _getErrorMessage(e);
+        });
+      } finally {
+        setState(() {
           _isLoading = false;
         });
       }
@@ -54,13 +78,13 @@ class _RegisterPageState extends State<RegisterPage> {
   String _getErrorMessage(FirebaseAuthException e) {
     switch (e.code) {
       case 'email-already-in-use':
-        return 'This email is already in use. Please try another.';
+        return 'An account already exists for this email.';
       case 'weak-password':
-        return 'The password is too weak. Please choose a stronger one.';
+        return 'Password should be at least 6 characters.';
       case 'invalid-email':
-        return 'The email address is not valid. Please check.';
+        return 'Invalid email address.';
       default:
-        return e.message ?? 'An error occurred';
+        return e.message ?? 'Registration failed. Please try again.';
     }
   }
 
@@ -68,87 +92,94 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Register'),
+        title: const Text('Create Account'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const Text('Create a new account', style: TextStyle(fontSize: 20)),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
                 keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter an email address';
+                    return 'Please enter your email.';
                   } else if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value)) {
-                    return 'Please enter a valid email address';
+                    return 'Enter a valid email.';
                   }
                   return null;
                 },
+                textInputAction: TextInputAction.next,
+                onFieldSubmitted: (_) {
+                  FocusScope.of(context).requestFocus(_passwordFocusNode);
+                },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
+                decoration: const InputDecoration(labelText: 'Password'),
                 obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
-                  } else if (value.length < 10) {
-                    return 'Password must be at least 10 characters';
-                  } else if (!RegExp(r'[A-Z]').hasMatch(value)) {
-                    return 'Password must include at least one uppercase letter';
-                  } else if (!RegExp(r'[0-9]').hasMatch(value)) {
-                    return 'Password must include at least one number';
-                  } else if (!RegExp(r'[!@#\$&*~^%()-]').hasMatch(value)) {
-                    return 'Password must include at least one special character';
+                    return 'Please enter your password.';
+                  } else if (value.length < 6) {
+                    return 'Password should be at least 6 characters.';
                   }
                   return null;
                 },
+                focusNode: _passwordFocusNode,
+                textInputAction: TextInputAction.next,
+                onFieldSubmitted: (_) {
+                  FocusScope.of(context).requestFocus(_confirmPasswordFocusNode);
+                },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _confirmPasswordController,
+                decoration: const InputDecoration(labelText: 'Confirm Password'),
                 obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Confirm Password',
-                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please confirm your password';
+                    return 'Please confirm your password.';
                   } else if (value != _passwordController.text) {
-                    return 'Passwords do not match';
+                    return 'Passwords do not match.';
                   }
                   return null;
                 },
+                focusNode: _confirmPasswordFocusNode,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) {
+                  _register();
+                },
               ),
-              SizedBox(height: 16),
-              Divider(), // Add a divider here
-              SizedBox(height: 8),
-              Text(
-                'Password must be at least 10 characters long, include an uppercase letter, a number, and a special character (!@#\$&*~^%()-).',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              SizedBox(height: 16),
+              const SizedBox(height: 20),
               _isLoading
-                  ? Center(child: CircularProgressIndicator())
+                  ? const CircularProgressIndicator()
                   : ElevatedButton(
                       onPressed: _register,
-                      child: Text('Register'),
+                      child: const Text('Register'),
                     ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                  );
+                },
+                child: const Text('Already have an account? Login'),
+              ),
               if (_errorMessage.isNotEmpty) ...[
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
                   _errorMessage,
-                  style: TextStyle(color: Colors.red),
+                  style: const TextStyle(color: Colors.red),
                 ),
               ],
             ],
