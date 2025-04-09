@@ -102,8 +102,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a password';
-                  } else if (value.length < 6) {
-                    return 'Password should be at least 6 characters';
+                  } else if (value.length < 10) {
+                    return 'Password must be at least 10 characters';
+                  } else if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                    return 'Password must include at least one uppercase letter';
+                  } else if (!RegExp(r'[0-9]').hasMatch(value)) {
+                    return 'Password must include at least one number';
+                  } else if (!RegExp(r'[!@#\$&*~^%()-]').hasMatch(value)) {
+                    return 'Password must include at least one special character';
                   }
                   return null;
                 },
@@ -123,6 +129,13 @@ class _RegisterPageState extends State<RegisterPage> {
                   }
                   return null;
                 },
+              ),
+              SizedBox(height: 16),
+              Divider(), // Add a divider here
+              SizedBox(height: 8),
+              Text(
+                'Password must be at least 10 characters long, include an uppercase letter, a number, and a special character (!@#\$&*~^%()-).',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               SizedBox(height: 16),
               _isLoading
