@@ -2,18 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CLIENT_ID</key>
+	<string>392847418626-hviota9g2eufmbmeh1km7tead4imdv44.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.392847418626-hviota9g2eufmbmeh1km7tead4imdv44</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>392847418626-npg5n07n6g7te1o08crakbd29f4m392m.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
-	<string>AIzaSyAr3VmTlgJ4GjDinmVXU7Wq9NTwn3BtFJE</string>
+	<string>AIzaSyBGaEO-0OWhNHt0Pv49mQfzCp_gTPYEgTw</string>
 	<key>GCM_SENDER_ID</key>
-	<string>364758273392</string>
+	<string>392847418626</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.dk.dkapp</string>
+	<string>com.example.dkApp</string>
 	<key>PROJECT_ID</key>
-	<string>dkapp-13d9d</string>
+	<string>dkapp-2025</string>
 	<key>STORAGE_BUCKET</key>
-	<string>dkapp-13d9d.firebasestorage.app</string>
+	<string>dkapp-2025.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:364758273392:ios:9e485771f89e13afe953b5</string>
+	<string>1:392847418626:ios:a1b09932345f726194ce1b</string>
 </dict>
 </plist>

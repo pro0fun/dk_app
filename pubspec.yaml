@@ -18,6 +18,7 @@ dependencies:
   
   # Social login packages
   google_sign_in: ^6.3.0   # Ensure correct version
+  logger: ^1.0.0 # Add this line for logging
   flutter_facebook_auth: ^6.0.4  # Ensure correct version
 
   # UI and additional utility packages
