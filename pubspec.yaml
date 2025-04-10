@@ -14,8 +14,8 @@ dependencies:
 
   # Firebase packages
   firebase_core: ^3.13.0  # Ensure correct version
-  firebase_auth: ^5.5.2   # Ensure correct version
-  
+  firebase_auth: ^5.5.2   # Keep the current version
+
   # Social login packages
   google_sign_in: ^6.3.0   # Ensure correct version
   logger: ^1.0.0 # Add this line for logging

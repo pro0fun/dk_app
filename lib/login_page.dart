@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:dk_app/services/google_signin_service.dart'; // Ensure correct path
 import 'screens/home_screen.dart';
 import 'screens/register_page.dart';
+import 'package:google_sign_in/google_sign_in.dart';  // Add this import
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,12 +20,64 @@ class LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
   String _errorMessage = '';
+  
+  final GoogleSignInService _googleSignInService = GoogleSignInService();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // Google Sign-In method
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      GoogleSignInAccount? user = await _googleSignInService.signInWithGoogle();
+
+      if (user != null) {
+        // Google authentication
+        final GoogleSignInAuthentication googleAuth = await user.authentication;
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        // Sign in to Firebase with the Google credentials
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+        if (!mounted) return;
+
+        final firebaseUser = userCredential.user;
+        if (firebaseUser == null) {
+          setState(() {
+            _errorMessage = 'Failed to sign in with Google.';
+          });
+          return;
+        }
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomeScreen(user: firebaseUser), // Passing Firebase User
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Google sign-in failed. Please try again.';
+      });
+      debugPrint("Error signing in with Google: $e");
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _login() async {
@@ -45,7 +99,7 @@ class LoginPageState extends State<LoginPage> {
         final user = userCredential.user; // Firebase User object
         if (user == null) {
           setState(() {
-            _errorMessage = 'User not found.';  // Adjusted to user-friendly error message
+            _errorMessage = 'User not found.';
           });
           return;
         }
@@ -61,13 +115,11 @@ class LoginPageState extends State<LoginPage> {
           _errorMessage = _getErrorMessage(e);
         });
         if (e.code == 'user-not-found') {
-          // This handles the case where the email doesn't exist
           setState(() {
             _errorMessage = 'Account does not exist. Please register.';
           });
         }
       } catch (e) {
-        // Catch any other errors
         setState(() {
           _errorMessage = 'An unexpected error occurred. Please try again.';
         });
@@ -82,7 +134,7 @@ class LoginPageState extends State<LoginPage> {
   String _getErrorMessage(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
-        return 'No user found with this email.';  // Friendly message for non-existing user
+        return 'No user found with this email.';
       case 'wrong-password':
         return 'Incorrect password.';
       case 'invalid-email':
@@ -122,7 +174,6 @@ class LoginPageState extends State<LoginPage> {
                   return null;
                 },
                 onFieldSubmitted: (_) {
-                  // Automatically move focus to the password field
                   FocusScope.of(context).nextFocus();
                 },
               ),
@@ -138,7 +189,6 @@ class LoginPageState extends State<LoginPage> {
                   return null;
                 },
                 onFieldSubmitted: (_) {
-                  // Trigger the login function when 'Enter' is pressed
                   _login();
                 },
               ),
@@ -158,6 +208,12 @@ class LoginPageState extends State<LoginPage> {
                   );
                 },
                 child: const Text('Don\'t have an account? Register'),
+              ),
+              const SizedBox(height: 20),
+              // Google Sign-In Button
+              ElevatedButton(
+                onPressed: _signInWithGoogle,
+                child: const Text("Sign in with Google"),
               ),
               if (_errorMessage.isNotEmpty) ...[
                 const SizedBox(height: 16),
