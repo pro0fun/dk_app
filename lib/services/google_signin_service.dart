@@ -3,33 +3,41 @@ import 'package:logger/logger.dart';
 
 class GoogleSignInService {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final Logger logger = Logger();  // Initialize the logger
+  final Logger _logger = Logger();
 
   // Sign in with Google
   Future<GoogleSignInAccount?> signInWithGoogle() async {
     try {
-      GoogleSignInAccount? user = await _googleSignIn.signIn();
-      logger.i('Successfully signed in with Google'); // Info level log
+      final user = await _googleSignIn.signIn();
+      if (user != null) {
+        _logger.i('Successfully signed in with Google as ${user.displayName}');
+      } else {
+        _logger.w('Google sign-in was cancelled by the user.');
+      }
       return user;
-    } catch (error) {
-      logger.e('Error signing in with Google: $error'); // Error level log
+    } catch (error, stackTrace) {
+      _logger.e('Error during Google sign-in: $error', error, stackTrace);
       return null;
     }
   }
 
   // Sign out
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    logger.i('Successfully signed out'); // Info level log
+    try {
+      await _googleSignIn.signOut();
+      _logger.i('Successfully signed out from Google.');
+    } catch (error, stackTrace) {
+      _logger.e('Error during Google sign-out: $error', error, stackTrace);
+    }
   }
 
   // Check if already signed in
   Future<GoogleSignInAccount?> getCurrentUser() async {
-    GoogleSignInAccount? user = _googleSignIn.currentUser;
+    final user = _googleSignIn.currentUser;
     if (user != null) {
-      logger.i('User is already signed in: ${user.displayName}'); // Info level log
+      _logger.i('User already signed in: ${user.displayName}');
     } else {
-      logger.i('No user is currently signed in'); // Info level log
+      _logger.i('No user is currently signed in.');
     }
     return user;
   }

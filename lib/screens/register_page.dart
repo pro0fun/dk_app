@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../login_page.dart';  // Correct path to login_page.dart since it's in the lib folder
+import 'login_page.dart';  // Correct path to login_page.dart since it's in the lib folder
 import 'home_screen.dart';   // Correct path to home_screen.dart
 
 class RegisterPage extends StatefulWidget {

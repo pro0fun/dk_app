@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:dk_app/services/google_signin_service.dart'; // Ensure correct path
-import 'screens/home_screen.dart';
-import 'screens/register_page.dart';
-import 'package:google_sign_in/google_sign_in.dart';  // Add this import
+import 'home_screen.dart';
+import 'register_page.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,12 +15,11 @@ class LoginPage extends StatefulWidget {
 class LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-
   final _formKey = GlobalKey<FormState>();
 
   bool _isLoading = false;
   String _errorMessage = '';
-  
+
   final GoogleSignInService _googleSignInService = GoogleSignInService();
 
   @override
@@ -30,7 +29,6 @@ class LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // Google Sign-In method
   Future<void> _signInWithGoogle() async {
     setState(() {
       _isLoading = true;
@@ -41,14 +39,12 @@ class LoginPageState extends State<LoginPage> {
       GoogleSignInAccount? user = await _googleSignInService.signInWithGoogle();
 
       if (user != null) {
-        // Google authentication
         final GoogleSignInAuthentication googleAuth = await user.authentication;
         final OAuthCredential credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
 
-        // Sign in to Firebase with the Google credentials
         UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
         if (!mounted) return;
@@ -64,7 +60,7 @@ class LoginPageState extends State<LoginPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomeScreen(user: firebaseUser), // Passing Firebase User
+            builder: (context) => HomeScreen(user: firebaseUser),
           ),
         );
       }
@@ -96,7 +92,7 @@ class LoginPageState extends State<LoginPage> {
 
         if (!mounted) return;
 
-        final user = userCredential.user; // Firebase User object
+        final user = userCredential.user;
         if (user == null) {
           setState(() {
             _errorMessage = 'User not found.';
@@ -107,7 +103,7 @@ class LoginPageState extends State<LoginPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomeScreen(user: user), // Passing Firebase User
+            builder: (context) => HomeScreen(user: user),
           ),
         );
       } on FirebaseAuthException catch (e) {
@@ -128,6 +124,32 @@ class LoginPageState extends State<LoginPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email to reset password.')),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset link sent! Check your email.')),
+      );
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_getErrorMessage(e))),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Something went wrong. Please try again.')),
+      );
     }
   }
 
@@ -192,6 +214,13 @@ class LoginPageState extends State<LoginPage> {
                   _login();
                 },
               ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _resetPassword,
+                  child: const Text('Forgot Password?'),
+                ),
+              ),
               const SizedBox(height: 20),
               _isLoading
                   ? const CircularProgressIndicator()
@@ -210,7 +239,6 @@ class LoginPageState extends State<LoginPage> {
                 child: const Text('Don\'t have an account? Register'),
               ),
               const SizedBox(height: 20),
-              // Google Sign-In Button
               ElevatedButton(
                 onPressed: _signInWithGoogle,
                 child: const Text("Sign in with Google"),

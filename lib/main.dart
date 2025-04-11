@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; // Ensure this file exists and is generated correctly
-import 'login_page.dart'; // Import your login page
+import 'screens/login_page.dart'; // Import your login page
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();  // Ensures that the Flutter engine is initialized.
