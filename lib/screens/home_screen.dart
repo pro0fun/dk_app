@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dk_app/screens/login_page.dart';
+import 'package:dk_app/screens/complete_profile_screen.dart'; // New screen
 
 class HomeScreen extends StatefulWidget {
   final User user;
+  final bool isFirstLogin;  // Add this line
 
   const HomeScreen({
     super.key,
     required this.user,
+    required this.isFirstLogin,  // Make sure it's passed in the constructor
   });
 
   @override
@@ -15,15 +19,49 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfProfileIsCompleted();
+  }
+
+  Future<void> _checkIfProfileIsCompleted() async {
+    try {
+      final uid = widget.user.uid;
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (!doc.exists || !(doc.data()?['profileCompleted'] ?? false)) {
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => CompleteProfileScreen(user: widget.user),
+              ),
+            );
+          });
+        }
+      } else {
+        setState(() {
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error checking profile status: $e");
+      setState(() {
+        _loading = false; // Still allow user to use the app even if check fails
+      });
+    }
+  }
+
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();
     if (mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const LoginPage()),
-          );
-        }
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+        );
       });
     }
   }
@@ -31,6 +69,12 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = widget.user;
+
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -54,11 +98,6 @@ class HomeScreenState extends State<HomeScreen> {
             Text(
               "Logged in as: ${user.email ?? 'unknown'}",
               style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              "UID: ${user.uid}",
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 20),
             ElevatedButton(

@@ -4,6 +4,7 @@ import 'package:dk_app/services/google_signin_service.dart'; // Ensure correct p
 import 'home_screen.dart';
 import 'register_page.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // For Firestore
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,6 +22,10 @@ class LoginPageState extends State<LoginPage> {
   String _errorMessage = '';
 
   final GoogleSignInService _googleSignInService = GoogleSignInService();
+
+  // Track failed login attempts
+  int _failedAttempts = 0;
+  DateTime? _lockoutTime;
 
   @override
   void dispose() {
@@ -57,12 +62,27 @@ class LoginPageState extends State<LoginPage> {
           return;
         }
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomeScreen(user: firebaseUser),
-          ),
-        );
+        // Check if it's the first login
+        final userRef = FirebaseFirestore.instance.collection('users').doc(firebaseUser.uid);
+        final docSnapshot = await userRef.get();
+        if (!docSnapshot.exists) {
+          // First login, navigate to settings prompt
+          if (!mounted) return; // Check for mounted before using context
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(user: firebaseUser, isFirstLogin: true), // Pass flag
+            ),
+          );
+        } else {
+          if (!mounted) return; // Check for mounted before using context
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(user: firebaseUser, isFirstLogin: false),
+            ),
+          );
+        }
       }
     } catch (e) {
       setState(() {
@@ -83,6 +103,13 @@ class LoginPageState extends State<LoginPage> {
         _errorMessage = '';
       });
 
+      if (_failedAttempts >= 3 && _lockoutTime != null && DateTime.now().isBefore(_lockoutTime!)) {
+        setState(() {
+          _errorMessage = 'Too many failed attempts. Please try again in 60 minutes.';
+        });
+        return;
+      }
+
       try {
         UserCredential userCredential = await FirebaseAuth.instance
             .signInWithEmailAndPassword(
@@ -100,19 +127,49 @@ class LoginPageState extends State<LoginPage> {
           return;
         }
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomeScreen(user: user),
-          ),
-        );
+        // Reset failed attempts upon successful login
+        setState(() {
+          _failedAttempts = 0;
+        });
+
+        // Check if it's the first login
+        final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final docSnapshot = await userRef.get();
+        if (!docSnapshot.exists) {
+          // First login, navigate to settings prompt
+          if (!mounted) return; // Check for mounted before using context
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(user: user, isFirstLogin: true), // Pass flag
+            ),
+          );
+        } else {
+          if (!mounted) return; // Check for mounted before using context
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(user: user, isFirstLogin: false),
+            ),
+          );
+        }
       } on FirebaseAuthException catch (e) {
         setState(() {
           _errorMessage = _getErrorMessage(e);
         });
-        if (e.code == 'user-not-found') {
+
+        if (e.code == 'wrong-password') {
           setState(() {
-            _errorMessage = 'Account does not exist. Please register.';
+            _failedAttempts++;
+            _errorMessage = 'Incorrect password. Please try again.';
+          });
+        }
+
+        // Lockout after 3 failed attempts
+        if (_failedAttempts >= 3) {
+          _lockoutTime = DateTime.now().add(Duration(minutes: 60));
+          setState(() {
+            _errorMessage += '\nYou are locked out for 60 minutes.';
           });
         }
       } catch (e) {
@@ -190,7 +247,7 @@ class LoginPageState extends State<LoginPage> {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your email.';
-                  } else if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value)) {
+                  } else if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zAZ0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value)) {
                     return 'Enter a valid email.';
                   }
                   return null;
@@ -239,10 +296,22 @@ class LoginPageState extends State<LoginPage> {
                 child: const Text('Don\'t have an account? Register'),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _signInWithGoogle,
-                child: const Text("Sign in with Google"),
-              ),
+              ElevatedButton.icon(
+  onPressed: _signInWithGoogle,
+  icon: const Icon(
+    Icons.login, 
+    color: Colors.white,
+  ),
+  label: const Text(
+    "Sign in with Google",
+    style: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+  ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: const Color.fromARGB(255, 236, 236, 236), // Darker blue for better contrast
+    foregroundColor: const Color.fromARGB(255, 255, 255, 255),    // White text color
+  ),
+),
+
               if (_errorMessage.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(

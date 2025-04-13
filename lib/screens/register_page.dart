@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'login_page.dart';  // Correct path to login_page.dart since it's in the lib folder
-import 'home_screen.dart';   // Correct path to home_screen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'login_page.dart';
+import 'home_screen.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -47,9 +48,7 @@ class RegisterPageState extends State<RegisterPage> {
           password: _passwordController.text.trim(),
         );
 
-        if (!mounted) return;
-
-        final user = userCredential.user; // Firebase User object
+        final user = userCredential.user;
         if (user == null) {
           setState(() {
             _errorMessage = 'Failed to create account.';
@@ -57,15 +56,30 @@ class RegisterPageState extends State<RegisterPage> {
           return;
         }
 
+        // Save isFirstLogin to Firestore
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'email': user.email,
+          'displayName': user.displayName ?? '',
+          'photoURL': user.photoURL ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
+          'isFirstLogin': true,
+        });
+
+        if (!mounted) return;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomeScreen(user: user), // Passing Firebase User
+            builder: (context) => HomeScreen(user: user, isFirstLogin: true),
           ),
         );
       } on FirebaseAuthException catch (e) {
         setState(() {
           _errorMessage = _getErrorMessage(e);
+        });
+      } catch (e) {
+        setState(() {
+          _errorMessage = 'Unexpected error occurred. Please try again.';
         });
       } finally {
         setState(() {
